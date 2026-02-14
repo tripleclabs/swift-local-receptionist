@@ -21,7 +21,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/tripleclabs/swift-distributed-actors.git", branch: "main")
+        .package(url: "https://github.com/tripleclabs/swift-distributed-actors.git", revision: "27b33b38b0e59f9921c2db344dbbac5454a9f313")
     ],
     targets: [
         .target(
