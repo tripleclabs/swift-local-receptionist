@@ -1,0 +1,38 @@
+#  ci.yml
+#  SwiftLocalReceptionist
+#
+#  Created on 2026-02-14
+#  Copyright Triple C Labs GmbH
+#
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Run tests with coverage
+        run: swift test --enable-code-coverage
+      - name: Enforce 85% coverage
+        run: |
+          profdata=$(find .build -name default.profdata | head -n 1)
+          binary=$(find .build -type f -path '*debug/SwiftLocalReceptionistPackageTests.xctest/Contents/MacOS/SwiftLocalReceptionistPackageTests' | head -n 1)
+          xcrun llvm-cov export -instr-profile "$profdata" "$binary" > coverage.json
+          pct=$(ruby -rjson -e 'j=JSON.parse(File.read("coverage.json"));covered=0.0;count=0.0;j["data"].each{|d|d["files"].each{|f|next unless f["filename"].include?("/Sources/SwiftLocalReceptionist/");f["segments"].each{|s|count+=1;covered+=1 if s[2].to_i>0}}}; puts((covered/count)*100.0)')
+          echo "Coverage: ${pct}%"
+          ruby -e 'exit(ARGV[0].to_f >= 85.0 ? 0 : 1)' "$pct"
+      - name: Print file coverage summary
+        if: always()
+        run: |
+          profdata=$(find .build -name default.profdata | head -n 1)
+          binary=$(find .build -type f -path '*debug/SwiftLocalReceptionistPackageTests.xctest/Contents/MacOS/SwiftLocalReceptionistPackageTests' | head -n 1)
+          xcrun llvm-cov report -instr-profile "$profdata" "$binary" Sources/SwiftLocalReceptionist/*.swift
